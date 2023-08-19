@@ -11,7 +11,10 @@ class VGM:
         assert self.version >= 0x161
 
         gd3_offset = self._relative_offset(0x14)
-        self.gd3_metadata = GD3(self.data[gd3_offset:])
+        if gd3_offset == 0x14:
+            self.gd3_metadata = None
+        else:
+            self.gd3_metadata = GD3(self.data[gd3_offset:])
 
     def _relative_offset(self, offset: int) -> int:
         return struct.unpack_from('L', self.data, offset)[0] + offset

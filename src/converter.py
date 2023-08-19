@@ -89,9 +89,12 @@ def generate_gbs(vgm: VGM) -> bytes:
 
     assert len(gbs) == 0x10
 
-    gbs.extend(_pad_metadata_string(vgm.gd3_metadata.track_name))
-    gbs.extend(_pad_metadata_string(vgm.gd3_metadata.author))
-    gbs.extend(_pad_metadata_string(vgm.gd3_metadata.game_name))
+    if vgm.gd3_metadata is not None:
+        gbs.extend(_pad_metadata_string(vgm.gd3_metadata.track_name))
+        gbs.extend(_pad_metadata_string(vgm.gd3_metadata.author))
+        gbs.extend(_pad_metadata_string(vgm.gd3_metadata.game_name))
+    else:
+        gbs.extend(_pad_metadata_string("<?>") * 3)
 
     assert len(gbs) == 0x70
 

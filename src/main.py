@@ -24,7 +24,10 @@ if __name__ == "__main__":
 
     print(f'Converting {in_file.name} to {out_file.name}...')
     print('VGM version:', vgm.version_string)
-    print('Track info:', vgm.gd3_metadata.track_info)
+    if vgm.gd3_metadata is not None:
+        print('Track info:', vgm.gd3_metadata.track_info)
+    else:
+        print('Track info: <none>')
     gbs = generate_gbs(vgm)
 
     with out_file.open('wb') as gbs_file:
