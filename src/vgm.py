@@ -17,11 +17,11 @@ class VGM:
             self.gd3_metadata = GD3(self.data[gd3_offset:])
 
     def _relative_offset(self, offset: int) -> int:
-        return struct.unpack_from('L', self.data, offset)[0] + offset
+        return struct.unpack_from('<L', self.data, offset)[0] + offset
 
     @property
     def version(self) -> int:
-        return struct.unpack_from('L', self.data, 0x8)[0]
+        return struct.unpack_from('<L', self.data, 0x8)[0]
 
     @property
     def version_string(self) -> str:
@@ -33,7 +33,7 @@ class VGM:
 
     @property
     def sample_count(self) -> int:
-        return struct.unpack_from('L', self.data, 0x18)[0]
+        return struct.unpack_from('<L', self.data, 0x18)[0]
 
     @property
     def loop_offset(self) -> int:
@@ -41,11 +41,11 @@ class VGM:
 
     @property
     def loop_samples(self) -> int:
-        return struct.unpack_from('L', self.data, 0x20)[0]
+        return struct.unpack_from('<L', self.data, 0x20)[0]
 
     @property
     def lr35902_clock(self) -> int:
-        return struct.unpack_from('L', self.data, 0x80)[0]
+        return struct.unpack_from('<L', self.data, 0x80)[0]
 
     def commands(self) -> Iterator[tuple]:
         offset = self._relative_offset(0x34)
@@ -57,14 +57,14 @@ class VGM:
 
             match self.data[offset]:
                 case 0x61:
-                    n = struct.unpack_from('H', self.data, offset + 1)[0]
+                    n = struct.unpack_from('<H', self.data, offset + 1)[0]
                     offset += 2
                     yield 'wait', n
                 case 0x62: yield 'wait', 735
                 case 0x63: yield 'wait', 882
                 case 0x66: break
                 case 0x67:
-                    dtype, size = struct.unpack_from('xBL', self.data, offset + 1)
+                    dtype, size = struct.unpack_from('<xBL', self.data, offset + 1)
                     offset += 6
                     block = self.data[offset+1:offset+1+size]
                     yield 'data-block', dtype, block
@@ -85,7 +85,7 @@ class VGM:
                 case 0x7E: yield 'wait', 15
                 case 0x7F: yield 'wait', 16
                 case 0xB3:
-                    addr, val = struct.unpack_from('BB', self.data, offset + 1)
+                    addr, val = struct.unpack_from('<BB', self.data, offset + 1)
                     offset += 2
                     yield 'write', 0xFF10 + addr, val
                 case _:
