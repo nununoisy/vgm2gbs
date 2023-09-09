@@ -62,10 +62,12 @@ def _pad_metadata_string(s: str) -> bytes:
 
 
 def generate_gbs(vgm: VGM) -> bytes:
+    banks, loop_bank, loop_addr = convert_vgm_to_engine_format(vgm)
+
     with Path(__file__).with_name("patch_rom.bin").open("rb") as patch_rom_file:
         patch_rom = bytearray(patch_rom_file.read())
+        patch_rom.extend([0] * ((len(banks) + 1) * 0x4000))
 
-    banks, loop_bank, loop_addr = convert_vgm_to_engine_format(vgm)
     for i, bank in enumerate(banks):
         bank_offset = 0x4000 * (i + 1)
         patch_rom[bank_offset:bank_offset+len(bank)] = bank[:]
