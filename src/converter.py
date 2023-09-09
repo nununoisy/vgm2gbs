@@ -8,6 +8,7 @@ _WAIT_CMD = 0x80
 _NEXT_BANK_CMD = 0xA0
 _LOOP_CMD = 0xC0
 _END_SONG_CMD = 0xD0
+_TMA_RATES = [4096, 262144, 65536, 16384]
 
 
 def convert_vgm_to_engine_format(vgm: VGM) -> Tuple[List[bytes], Optional[int], Optional[int]]:
@@ -57,11 +58,16 @@ def convert_vgm_to_engine_format(vgm: VGM) -> Tuple[List[bytes], Optional[int], 
     return result, loop_bank, loop_addr
 
 
+def _calculate_tma_modulo(tma_rate: int, engine_rate: int) -> int:
+    distance = tma_rate / engine_rate
+    return 0xFF - int(round(distance))
+
+
 def _pad_metadata_string(s: str) -> bytes:
     return (s.encode('ascii') + (b"\x00" * 32))[:32]
 
 
-def generate_gbs(vgm: VGM) -> bytes:
+def generate_gbs(vgm: VGM, engine_rate: int = 60, tma_offset: int = 0) -> bytes:
     banks, loop_bank, loop_addr = convert_vgm_to_engine_format(vgm)
 
     with Path(__file__).with_name("patch_rom.bin").open("rb") as patch_rom_file:
@@ -72,11 +78,18 @@ def generate_gbs(vgm: VGM) -> bytes:
         bank_offset = 0x4000 * (i + 1)
         patch_rom[bank_offset:bank_offset+len(bank)] = bank[:]
 
-    patch_rom[0x3FFA] = 0
-    patch_rom[0x3FFB] = 0
+    if engine_rate != 60:
+        tma_distance = _calculate_tma_modulo(_TMA_RATES[0], engine_rate)
+        patch_rom[0x3FFB] = 4
+    else:
+        tma_distance = 0
+        patch_rom[0x3FFB] = 0
+
     if loop_bank is not None and loop_addr is not None:
         patch_rom[0x3FFC:0x3FFE] = int.to_bytes(loop_addr, 2, 'little')
         patch_rom[0x3FFE:0x4000] = int.to_bytes(loop_bank, 2, 'little')
+
+    patch_rom[0x3FFA] = tma_offset + tma_distance
 
     gbs = bytearray(b"GBS")
     gbs.append(1)  # Version
@@ -86,8 +99,8 @@ def generate_gbs(vgm: VGM) -> bytes:
     gbs.extend(int.to_bytes(0x3EF0, 2, 'little'))  # INIT address
     gbs.extend(int.to_bytes(0x3F26, 2, 'little'))  # PLAY address
     gbs.extend(int.to_bytes(0xFFFE, 2, 'little'))  # Stack pointer
-    gbs.append(0)  # TMA
-    gbs.append(0)  # TAC
+    gbs.append(patch_rom[0x3FFA])  # TMA
+    gbs.append(patch_rom[0x3FFB])  # TAC
 
     assert len(gbs) == 0x10
 
